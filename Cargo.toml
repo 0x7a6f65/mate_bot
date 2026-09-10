@@ -1,0 +1,8 @@
+[package]
+name = "mate_bot"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+diesel = "2.3.13"
+teloxide = "0.17.0"
