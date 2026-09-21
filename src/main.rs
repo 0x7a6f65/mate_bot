@@ -1,6 +1,7 @@
 use diesel::prelude::*;
 use dotenvy::dotenv;
 use std::env;
+use std::fmt::format;
 use teloxide::utils::command::BotCommands;
 use teloxide::{prelude::*, types::*};
 
@@ -140,10 +141,15 @@ async fn command_handler(bot: Bot, msg: Message, cmd: Command) -> ResponseResult
                 .load(conn)
                 .unwrap();
 
-            let user = &user[0];
-
-            bot.send_message(msg.chat.id, format!("You have drunk {} matés", user.count))
+            if user.len() > 0 {
+                let user = &user[0];
+                
+                bot.send_message(msg.chat.id, format!("You have drunk {} matés", user.count))
                 .await?
+            } else {
+                bot.send_message(msg.chat.id, format!("You have yet to drink an maté"))
+                .await?
+            }
         }
         _ => {
             bot.send_message(msg.chat.id, format!("Not implemented yet :<"))
