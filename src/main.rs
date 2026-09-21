@@ -1,7 +1,7 @@
 use diesel::prelude::*;
 use dotenvy::dotenv;
 use std::env;
-use teloxide::utils::command::BotCommands;
+use teloxide::utils::command::{self, BotCommands};
 use teloxide::{prelude::*};
 
 use mate_bot::models::*;
@@ -26,6 +26,8 @@ enum Command {
     Add,
     #[command(description = "Remove a FAKE maté")]
     Remove,
+    #[command(description = "This bot is licensed AGPL, check out the source code")]
+    Source,
 }
 
 pub fn connect() -> SqliteConnection {
@@ -149,6 +151,10 @@ async fn command_handler(bot: Bot, msg: Message, cmd: Command) -> ResponseResult
                 bot.send_message(msg.chat.id, format!("You have yet to drink an maté"))
                 .await?
             }
+        }
+        Command::Source => {
+            bot.send_message(msg.chat.id, format!("See the license for this cool bot over at https://github.com/PadjokeJ/mate_bot"))
+                .await?
         }
         _ => {
             bot.send_message(msg.chat.id, format!("Not implemented yet :<"))
