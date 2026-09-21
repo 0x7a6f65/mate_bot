@@ -1,6 +1,6 @@
 CREATE TABLE mates (
     id BIGINT NOT NULL PRIMARY KEY,
-    username TEXT NOT NULL,
+    display_name TEXT NOT NULL,
     count INTEGER NOT NULL
 );
 

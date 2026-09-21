@@ -1,7 +1,7 @@
 diesel::table! {
     mates (id) {
         id -> BigInt,
-        username -> Text,
+        display_name -> Text,
         count -> Integer,
     }
 }
