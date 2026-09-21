@@ -1,15 +1,18 @@
 use diesel::prelude::*;
 use dotenvy::dotenv;
 use std::env;
-use teloxide::{prelude::*, types::*};
 use teloxide::utils::command::BotCommands;
+use teloxide::{prelude::*, types::*};
 
 use mate_bot::models::*;
 use mate_bot::schema::allowed_chats::dsl::*;
 use mate_bot::schema::mates::dsl::*;
 
 #[derive(BotCommands, Clone)]
-#[command(description = "These commands are supported:", rename_rule= "lowercase")]
+#[command(
+    description = "These commands are supported:",
+    rename_rule = "lowercase"
+)]
 enum Command {
     #[command(description = "Display this text")]
     Help,
@@ -30,7 +33,53 @@ pub fn connect() -> SqliteConnection {
     SqliteConnection::establish(&db_url).unwrap()
 }
 
-async fn bot_handler(bot: Bot, msg: Message, cmd: Command) -> ResponseResult<()> {
+async fn photo_handler(bot: Bot, msg: Message) -> ResponseResult<()> {
+    let conn = &mut connect();
+
+    let sender = match &msg.from {
+        Some(u) => u.id.0,
+        _ => 0,
+    };
+    let chat = allowed_chats
+        .find(msg.chat.id.0)
+        .select(AllowedChats::as_select())
+        .load(conn);
+
+    if sender != 0 && chat.is_ok() && chat.unwrap_or_else(|_| Vec::new()).len() > 0 {
+        let user = mates
+            .find(sender as i64)
+            .select(Mates::as_select())
+            .load(conn);
+
+        match user {
+            Ok(u) if u.len() >= 1 => {
+                let u = &u[0];
+
+                diesel::update(mates.find(u.id))
+                    .set(mate_bot::schema::mates::count.eq(count + 1))
+                    .execute(conn)
+                    .unwrap();
+            }
+            _ => {
+                let user = msg.from.unwrap();
+                let new_data = Mates {
+                    id: user.id.0 as i64,
+                    display_name: user.full_name().to_string(),
+                    count: 1,
+                };
+
+                diesel::insert_into(mate_bot::schema::mates::table)
+                    .values(&new_data)
+                    .execute(conn)
+                    .unwrap();
+            }
+        };
+    }
+
+    Ok(())
+}
+
+async fn command_handler(bot: Bot, msg: Message, cmd: Command) -> ResponseResult<()> {
     let conn = &mut connect();
 
     match cmd {
@@ -74,7 +123,8 @@ async fn bot_handler(bot: Bot, msg: Message, cmd: Command) -> ResponseResult<()>
                     bot.send_message(msg.chat.id, format!("Enabled maté count in this channel"))
                         .await?
                 } else {
-                    bot.send_message(msg.chat.id, format!("Some error i don't understand")).await?
+                    bot.send_message(msg.chat.id, format!("Some error i don't understand"))
+                        .await?
                 }
             } else {
                 bot.send_message(msg.chat.id, format!("Not an admin!!"))
@@ -89,7 +139,7 @@ async fn bot_handler(bot: Bot, msg: Message, cmd: Command) -> ResponseResult<()>
                 .select(Mates::as_select())
                 .load(conn)
                 .unwrap();
-            
+
             let user = &user[0];
 
             bot.send_message(msg.chat.id, format!("You have drunk {} matés", user.count))
@@ -100,54 +150,6 @@ async fn bot_handler(bot: Bot, msg: Message, cmd: Command) -> ResponseResult<()>
                 .await?
         }
     };
-
-    match msg.kind {
-        MessageKind::Common(common) => match common.media_kind {
-            MediaKind::Photo(_) => {
-                let sender = match &msg.from {
-                    Some(u) => u.id.0,
-                    _ => 0,
-                };
-                let chat = allowed_chats
-                    .find(msg.chat.id.0)
-                    .select(AllowedChats::as_select())
-                    .load(conn);
-
-                if sender != 0 && chat.is_ok() && chat.unwrap_or_else(|_| Vec::new()).len() > 0 {
-                    let user = mates
-                        .find(sender as i64)
-                        .select(Mates::as_select())
-                        .load(conn);
-
-                    match user {
-                        Ok(u) if u.len() >= 1 => {
-                            let u = &u[0];
-
-                            diesel::update(mates.find(u.id))
-                                .set(mate_bot::schema::mates::count.eq(count + 1))
-                                .execute(conn)
-                                .unwrap();
-                        }
-                        _ => {
-                            let user = msg.from.unwrap();
-                            let new_data = Mates {
-                                id: user.id.0 as i64,
-                                display_name: "user.full_name()".to_string(),
-                                count: 1,
-                            };
-
-                            diesel::insert_into(mate_bot::schema::mates::table)
-                                .values(&new_data)
-                                .execute(conn)
-                                .unwrap();
-                        }
-                    };
-                }
-            }
-            _ => (),
-        },
-        _ => (),
-    };
     Ok(())
 }
 
@@ -157,5 +159,15 @@ async fn main() {
 
     let bot = Bot::new(env::var("TELOXIDE_TOKEN").unwrap());
 
-    Command::repl(bot, bot_handler).await;
+    let cmd = teloxide::filter_command::<Command, _>().endpoint(command_handler);
+
+    let schema = Update::filter_message()
+        .branch(cmd)
+        .branch(Message::filter_photo().endpoint(photo_handler));
+
+    Dispatcher::builder(bot, schema)
+        .enable_ctrlc_handler()
+        .build()
+        .dispatch()
+        .await;
 }
