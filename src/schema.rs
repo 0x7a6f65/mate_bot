@@ -5,3 +5,9 @@ diesel::table! {
         count -> Integer,
     }
 }
+
+diesel::table! {
+    allowed_chats (id) {
+        id -> BigInt,
+    }
+}

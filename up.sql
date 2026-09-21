@@ -3,3 +3,7 @@ CREATE TABLE mates (
     username TEXT NOT NULL,
     count INTEGER NOT NULL
 );
+
+CREATE TABLE allowed_chats (
+    id BIGINT NOT NULL PRIMARY KEY
+);

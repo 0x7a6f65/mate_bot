@@ -9,3 +9,9 @@ pub struct Mates {
     pub count: i32,
 }
 
+#[derive(Queryable, Selectable, Insertable)]
+#[diesel(table_name = crate::schema::allowed_chats)]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+pub struct AllowedChats {
+    pub id: i64,
+}
