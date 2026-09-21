@@ -1,9 +1,8 @@
 use diesel::prelude::*;
 use dotenvy::dotenv;
 use std::env;
-use std::fmt::format;
 use teloxide::utils::command::BotCommands;
-use teloxide::{prelude::*, types::*};
+use teloxide::{prelude::*};
 
 use mate_bot::models::*;
 use mate_bot::schema::allowed_chats::dsl::*;
@@ -34,7 +33,7 @@ pub fn connect() -> SqliteConnection {
     SqliteConnection::establish(&db_url).unwrap()
 }
 
-async fn photo_handler(bot: Bot, msg: Message) -> ResponseResult<()> {
+async fn photo_handler(_: Bot, msg: Message) -> ResponseResult<()> {
     let conn = &mut connect();
 
     let sender = match &msg.from {

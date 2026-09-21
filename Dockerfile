@@ -2,6 +2,8 @@ FROM rust:1.98.1
 
 WORKDIR /app
 
+RUN apt update && apt install sqlite3
+
 COPY Cargo.toml Cargo.lock ./
 RUN mkdir src && echo "fn main() {}" > src/main.rs
 RUN cargo build --release
