@@ -38,6 +38,8 @@ pub fn connect() -> SqliteConnection {
 async fn photo_handler(_: Bot, msg: Message) -> ResponseResult<()> {
     let conn = &mut connect();
 
+    println!("handling photos");
+
     let sender = match &msg.from {
         Some(u) => u.id.0 as i64,
         _ => 0,
@@ -48,6 +50,7 @@ async fn photo_handler(_: Bot, msg: Message) -> ResponseResult<()> {
         .load(conn);
 
     if sender != 0 && chat.is_ok() && chat.unwrap_or_else(|_| Vec::new()).len() > 0 {
+        println!("chat and sender izok");
         let user = mates
             .find(sender as i64)
             .select(Mates::as_select())
@@ -55,6 +58,7 @@ async fn photo_handler(_: Bot, msg: Message) -> ResponseResult<()> {
 
         match user {
             Ok(u) if u.len() >= 1 => {
+                println!("updating user");
                 let u = &u[0];
 
                 diesel::update(mates.find(u.id))
@@ -63,6 +67,7 @@ async fn photo_handler(_: Bot, msg: Message) -> ResponseResult<()> {
                     .unwrap();
             }
             _ => {
+                println!("creating firts maté");
                 let user = msg.from.unwrap();
                 let new_data = Mates {
                     id: user.id.0 as i64,
