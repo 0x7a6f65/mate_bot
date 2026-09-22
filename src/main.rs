@@ -39,11 +39,11 @@ async fn photo_handler(_: Bot, msg: Message) -> ResponseResult<()> {
     let conn = &mut connect();
 
     let sender = match &msg.from {
-        Some(u) => u.id.0,
+        Some(u) => u.id.0 as i64,
         _ => 0,
     };
     let chat = allowed_chats
-        .find(msg.chat.id.0)
+        .find(msg.chat.id.0 as i64)
         .select(AllowedChats::as_select())
         .load(conn);
 
