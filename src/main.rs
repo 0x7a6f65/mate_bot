@@ -110,7 +110,7 @@ async fn command_handler(bot: Bot, msg: Message, cmd: Command) -> ResponseResult
         Command::Enable => {
             if msg.from.clone().unwrap().id.0 == 8322506629 {
                 let chat = allowed_chats
-                    .find(msg.chat.id.0)
+                    .find(msg.chat.id.0 as i64)
                     .select(AllowedChats::as_select())
                     .load(conn);
 
